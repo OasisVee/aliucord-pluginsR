@@ -1,11 +1,11 @@
 version = "1.1.6"
-description = "Display nick/user names with some fancy chars reverted to normal."
+description = "Display nick/user names (and messages) with some fancy chars reverted to normal."
 
 aliucord {
 	changelog.set(
 		"""
             # 1.1.6
-			* Normalize messages -serinova
+            * Normalize messages -serinova
 
 			# 1.1.5
 			* Normalize user global names
