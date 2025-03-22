@@ -5,7 +5,7 @@ aliucord {
 	changelog.set(
 		"""
             # 1.1.6
-            * Normalize messages -serinova
+			* Normalize messages -serinova
 
 			# 1.1.5
 			* Normalize user global names
