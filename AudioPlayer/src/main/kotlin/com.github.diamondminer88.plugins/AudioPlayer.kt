@@ -1,3 +1,4 @@
+
 package com.github.diamondminer88.plugins
 
 import android.annotation.SuppressLint
@@ -258,12 +259,16 @@ class AudioPlayer : Plugin() {
         }
 
         patcher.after<StoreMessages>("handleChannelSelected", Long::class.javaPrimitiveType!!) {
+            currentPlayer?.release()
+            currentPlayer = null
             currentPlayerUnsubscribe?.invoke()
             currentPlayerUnsubscribe = null
             onPauseListener = null
         }
 
         patcher.after<AppActivity>("onCreate", Bundle::class.java) {
+            currentPlayer?.release()
+            currentPlayer = null
             currentPlayerUnsubscribe?.invoke()
             currentPlayerUnsubscribe = null
             onPauseListener = null
@@ -278,3 +283,4 @@ class AudioPlayer : Plugin() {
         patcher.unpatchAll()
     }
 }
+
