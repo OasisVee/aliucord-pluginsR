@@ -13,9 +13,8 @@ import com.aliucord.settings.delegate
 import com.aliucord.utils.ReflectUtils
 import com.aliucord.widgets.BottomSheet
 import com.discord.api.guildmember.GuildMember
-import com.discord.api.message.Message
 import com.discord.api.user.User
-import com.discord.models.message.MessageContent
+import com.discord.models.message.MessageContent // Ensure this import is correct
 import com.discord.views.CheckedSetting
 
 @Suppress("unused")
@@ -69,9 +68,10 @@ class NormalizeNames : Plugin() {
         globalNamesInterceptor.putAll(originalGlobalNames as Map<Long, String>)
 
         // Normalize message content
-        patcher.after<MessageContent>("getBody") {
-            if (it.result != null)
+        patcher.after<MessageContent>("getContent") { it ->
+            if (it.result != null) {
                 it.result = normalizeString(it.result as String)
+            }
         }
     }
 
