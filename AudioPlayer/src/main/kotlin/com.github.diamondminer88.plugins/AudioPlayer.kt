@@ -1,4 +1,5 @@
 
+
 package com.github.diamondminer88.plugins
 
 import android.annotation.SuppressLint
@@ -209,7 +210,7 @@ class AudioPlayer : Plugin() {
                         currentPlayer = MediaPlayer()
 
                         Utils.threadPool.execute {
-
+                            // Handle .ogg and .opus files
                             if (messageAttachment.filename.endsWith(".ogg") || messageAttachment.filename.endsWith(".opus")) {
                                 var file = File(ctx.cacheDir, "audio.${messageAttachment.filename.split(".").last()}")
                                 file.deleteOnExit()
@@ -283,4 +284,5 @@ class AudioPlayer : Plugin() {
         patcher.unpatchAll()
     }
 }
+
 
