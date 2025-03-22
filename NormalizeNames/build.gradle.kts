@@ -4,8 +4,8 @@ description = "Display nick/user names (and messages) with some fancy chars reve
 aliucord {
 	changelog.set(
 		"""
-            # 1.1.6
-            * Normalize messages -serinova
+			# 1.1.6
+			* Normalize messages -serinova
 
 			# 1.1.5
 			* Normalize user global names
