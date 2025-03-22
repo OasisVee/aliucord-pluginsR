@@ -1,10 +1,12 @@
 
 
+
 package com.github.diamondminer88.plugins
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.media.*
+import android.media.MediaMetadataRetriever
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -42,6 +44,9 @@ class AudioPlayer : Plugin() {
     private val audioFileIconId = Utils.getResId("ic_file_audio", "drawable")
     private val validFileExtensions = arrayOf("webm", "mp3", "aac", "m4a", "wav", "flac", "wma", "opus", "ogg")
 
+    private var currentPlayer: MediaPlayer? = null
+    private var currentUrl: String? = null
+
     private fun msToTime(ms: Long): String {
         val hrs = ms / 3_600_000
         val mins = ms / 60000
@@ -55,16 +60,12 @@ class AudioPlayer : Plugin() {
 
     override fun start(context: Context) {
         val p2 = DimenUtils.defaultPadding / 2
-        var onPauseListener: (() -> Unit)? = null
-        var currentPlayerUnsubscribe: (() -> Unit)? = null
-        var currentPlayer: MediaPlayer? = null
 
-        // rotated triangle icon
+        // Icons
         val playIcon = ContextCompat.getDrawable(
             context,
             com.google.android.exoplayer2.ui.R.b.exo_controls_pause
         )
-        // two vertical bars icon
         val pauseIcon = ContextCompat.getDrawable(
             context,
             com.google.android.exoplayer2.ui.R.b.exo_controls_play
@@ -196,23 +197,17 @@ class AudioPlayer : Plugin() {
                 })
 
                 buttonView.setOnClickListener {
-                    playing = !playing
-
-                    if (!isPrepared && !preparing) {
-                        preparing = true
-                        Utils.mainThread.post { buttonView.background = null }
-
+                    if (currentUrl != messageAttachment.url) {
                         currentPlayer?.release()
-                        currentPlayer = null
-                        currentPlayerUnsubscribe?.invoke()
-                        onPauseListener = null
-                        var url = messageAttachment.url
                         currentPlayer = MediaPlayer()
+                        currentUrl = messageAttachment.url
+                        isPrepared = false
+                        preparing = true
 
                         Utils.threadPool.execute {
-                            // Handle .ogg and .opus files
+                            var url = messageAttachment.url
                             if (messageAttachment.filename.endsWith(".ogg") || messageAttachment.filename.endsWith(".opus")) {
-                                var file = File(ctx.cacheDir, "audio.${messageAttachment.filename.split(".").last()}")
+                                val file = File(ctx.cacheDir, "audio.${messageAttachment.filename.split(".").last()}")
                                 file.deleteOnExit()
                                 Http.simpleDownload(url, file)
                                 url = file.absolutePath
@@ -235,20 +230,13 @@ class AudioPlayer : Plugin() {
                                     player.seekTo(0)
                                     Utils.mainThread.post { buttonView.background = rewindIcon }
                                 }
-                                currentPlayerUnsubscribe = {
-                                    playing = false
-                                    Utils.mainThread.post { updatePlaying() }
-                                }
-                                onPauseListener = {
-                                    playing = false
-                                    Utils.mainThread.post { updatePlaying() }
-                                }
                                 prepare()
                                 isPrepared = true
                                 preparing = false
                             }
                         }
                     } else {
+                        playing = !playing
                         updatePlaying()
                     }
                 }
@@ -262,27 +250,27 @@ class AudioPlayer : Plugin() {
         patcher.after<StoreMessages>("handleChannelSelected", Long::class.javaPrimitiveType!!) {
             currentPlayer?.release()
             currentPlayer = null
-            currentPlayerUnsubscribe?.invoke()
-            currentPlayerUnsubscribe = null
-            onPauseListener = null
+            currentUrl = null
         }
 
         patcher.after<AppActivity>("onCreate", Bundle::class.java) {
             currentPlayer?.release()
             currentPlayer = null
-            currentPlayerUnsubscribe?.invoke()
-            currentPlayerUnsubscribe = null
-            onPauseListener = null
+            currentUrl = null
         }
 
         patcher.after<AppActivity>("onPause") {
-            onPauseListener?.invoke()
+            currentPlayer?.pause()
         }
     }
 
     override fun stop(context: Context) {
         patcher.unpatchAll()
+        currentPlayer?.release()
+        currentPlayer = null
+        currentUrl = null
     }
 }
+
 
 
