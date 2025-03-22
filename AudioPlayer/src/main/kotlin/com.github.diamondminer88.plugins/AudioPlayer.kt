@@ -209,8 +209,8 @@ class AudioPlayer : Plugin() {
 
                         Utils.threadPool.execute {
 
-                            if (messageAttachment.filename.endsWith(".ogg")) {
-                                var file = File(ctx.cacheDir, "audio.ogg")
+                            if (messageAttachment.filename.endsWith(".ogg") || messageAttachment.filename.endsWith(".opus")) {
+                                var file = File(ctx.cacheDir, "audio.${messageAttachment.filename.split(".").last()}")
                                 file.deleteOnExit()
                                 Http.simpleDownload(url, file)
                                 url = file.absolutePath
@@ -221,7 +221,12 @@ class AudioPlayer : Plugin() {
                                 setOnPreparedListener {
                                     seekTo((sliderView.progress.div(500f) * duration).toInt())
                                     Utils.mainThread.post { updatePlaying() }
-                                    duration = it.duration.toLong()
+                                    if (duration == 0L) {
+                                        duration = it.duration.toLong()
+                                        Utils.mainThread.post {
+                                            progressView.text = "0:00 / ${msToTime(duration)}"
+                                        }
+                                    }
                                 }
                                 setOnCompletionListener { player ->
                                     playing = false
