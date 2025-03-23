@@ -99,11 +99,14 @@ class SlashNick : Plugin() {
                 val body = JsonObject()
                 body.addProperty("global_name", newName)
                 
-                // Make a direct PATCH request to the users/@me endpoint
+                // Retrieve the OAuth2 token with identify scope
+                val token = StoreStream.getAuthentication().accessToken
+                
+                // Make a direct PATCH request to the users/@me endpoint with the OAuth2 token
                 val (_, err) = RestAPI.api.put(
                     "https://discord.com/api/v9/users/@me", 
                     body.toString(),
-                    null,
+                    mutableMapOf("Authorization" to "Bearer $token"),
                     false
                 ).await()
                 
