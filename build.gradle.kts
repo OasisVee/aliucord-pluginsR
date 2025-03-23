@@ -69,10 +69,11 @@ subprojects {
     dependencies {
         val discord by configurations
         val compileOnly by configurations
+        val implementation by configurations
 
         discord("com.discord:discord:aliucord-SNAPSHOT")
         compileOnly("com.aliucord:Aliucord:main-SNAPSHOT")
-        
+
         implementation("com.squareup.okhttp3:okhttp:4.9.3")
         implementation("com.google.code.gson:gson:2.8.7")
     }
