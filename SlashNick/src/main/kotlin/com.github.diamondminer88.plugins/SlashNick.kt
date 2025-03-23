@@ -9,10 +9,13 @@ import com.aliucord.utils.RxUtils.await
 import com.discord.api.commands.ApplicationCommandType
 import com.discord.api.guildmember.PatchGuildMemberBody
 import com.discord.api.permission.Permission
-import com.discord.api.user.UserProfile
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
+import com.discord.models.user.CoreUser
+import com.discord.api.user.UserProfilePatch
+import com.discord.api.user.UserFlag
+import com.google.gson.JsonObject
 
 @Suppress("unused")
 @AliucordPlugin
@@ -42,12 +45,12 @@ class SlashNick : Plugin() {
 
             when (type) {
                 "displayname" -> {
-                    if (newName != me.displayName) {
-                        // Use the correct API for updating global display name
-                        val (_, err) = RestAPI.api.patch(
-                            "/users/@me/profile",
-                            UserProfile(newName, null)
-                        ).await()
+                    if (newName != me.username) {
+                        // Alternative approach using a JSON object for the request body
+                        val body = JsonObject()
+                        body.addProperty("global_name", newName)
+                        
+                        val (_, err) = RestAPI.api.patchUser("@me", body).await()
 
                         if (err != null) {
                             err.printStackTrace()
