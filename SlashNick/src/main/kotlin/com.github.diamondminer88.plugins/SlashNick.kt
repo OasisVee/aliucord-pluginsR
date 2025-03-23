@@ -9,6 +9,7 @@ import com.aliucord.utils.RxUtils.await
 import com.discord.api.commands.ApplicationCommandType
 import com.discord.api.guildmember.PatchGuildMemberBody
 import com.discord.api.permission.Permission
+import com.discord.api.user.UserProfile
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
@@ -42,9 +43,10 @@ class SlashNick : Plugin() {
             when (type) {
                 "displayname" -> {
                     if (newName != me.displayName) {
-                        val (_, err) = RestAPI.api.updateMeGuildMember(
-                            me.id,
-                            PatchGuildMemberBody(newName ?: me.username, null, null, null, 12)
+                        // Use the correct API for updating global display name
+                        val (_, err) = RestAPI.api.patch(
+                            "/users/@me/profile",
+                            UserProfile(newName, null)
                         ).await()
 
                         if (err != null) {
