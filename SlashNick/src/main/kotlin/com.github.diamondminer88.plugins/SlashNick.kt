@@ -13,6 +13,7 @@ import com.discord.api.user.PatchUserBody
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
+import com.discord.api.message.NullSerializable
 
 @Suppress("unused")
 @AliucordPlugin
@@ -43,8 +44,14 @@ class SlashNick : Plugin() {
             when (type) {
                 "displayname" -> {
                     // Create a PatchUserBody with the global_name parameter
+                    // Wrap the new name in NullSerializable to satisfy type requirements
                     val (_, err) = RestAPI.api.patchUser(
-                        PatchUserBody(null, null, newName, null)
+                        PatchUserBody(
+                            NullSerializable.ofNullable(null),
+                            NullSerializable.ofNullable(null),
+                            NullSerializable.ofNullable(newName),
+                            NullSerializable.ofNullable(null)
+                        )
                     ).await()
 
                     if (err != null) {
