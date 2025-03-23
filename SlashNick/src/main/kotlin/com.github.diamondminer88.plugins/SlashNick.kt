@@ -9,13 +9,10 @@ import com.aliucord.utils.RxUtils.await
 import com.discord.api.commands.ApplicationCommandType
 import com.discord.api.guildmember.PatchGuildMemberBody
 import com.discord.api.permission.Permission
+import com.discord.api.user.PatchUserBody
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
-import com.discord.models.user.CoreUser
-import com.discord.api.user.UserProfilePatch
-import com.discord.api.user.UserFlag
-import com.google.gson.JsonObject
 
 @Suppress("unused")
 @AliucordPlugin
@@ -45,22 +42,20 @@ class SlashNick : Plugin() {
 
             when (type) {
                 "displayname" -> {
-                    if (newName != me.username) {
-                        // Alternative approach using a JSON object for the request body
-                        val body = JsonObject()
-                        body.addProperty("global_name", newName)
-                        
-                        val (_, err) = RestAPI.api.patchUser("@me", body).await()
+                    // Create a PatchUserBody with the global_name parameter
+                    val (_, err) = RestAPI.api.patchUser(
+                        PatchUserBody(null, null, newName, null)
+                    ).await()
 
-                        if (err != null) {
-                            err.printStackTrace()
-                            return@registerCommand CommandResult(
-                                "Failed to change display name. Check log for more details.",
-                                null,
-                                false
-                            )
-                        }
+                    if (err != null) {
+                        err.printStackTrace()
+                        return@registerCommand CommandResult(
+                            "Failed to change display name. Check log for more details.",
+                            null,
+                            false
+                        )
                     }
+                    
                     CommandResult("Your display name has been changed to **$newName**.", null, false)
                 }
                 "nickname" -> {
