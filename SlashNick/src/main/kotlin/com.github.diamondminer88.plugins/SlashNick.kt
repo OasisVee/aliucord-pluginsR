@@ -5,7 +5,6 @@ import com.aliucord.Utils
 import com.aliucord.annotations.AliucordPlugin
 import com.aliucord.api.CommandsAPI.CommandResult
 import com.aliucord.entities.Plugin
-import com.aliucord.utils.DimenUtils
 import com.aliucord.utils.RxUtils.await
 import com.discord.api.commands.ApplicationCommandType
 import com.discord.api.guildmember.PatchGuildMemberBody
@@ -13,14 +12,11 @@ import com.discord.api.permission.Permission
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
-import com.discord.utilities.analytics.AnalyticSuperProperties
-import com.discord.stores.StoreExperiments
 import com.google.gson.JsonObject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import rx.Observable
 
 @Suppress("unused")
 @AliucordPlugin
@@ -104,7 +100,7 @@ class SlashNick : Plugin() {
                 body.addProperty("global_name", newName)
                 
                 // Retrieve the OAuth2 token with identify scope
-                val token = StoreStream.getAuthentication().getSession().accessToken
+                val token = StoreStream.getAuthentication().session.accessToken
                 
                 // Make a direct PATCH request to the users/@me endpoint with the OAuth2 token
                 val client = OkHttpClient()
