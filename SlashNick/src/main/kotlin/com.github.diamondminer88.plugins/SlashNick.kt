@@ -5,15 +5,18 @@ import com.aliucord.Utils
 import com.aliucord.annotations.AliucordPlugin
 import com.aliucord.api.CommandsAPI.CommandResult
 import com.aliucord.entities.Plugin
+import com.aliucord.utils.DimenUtils
 import com.aliucord.utils.RxUtils.await
 import com.discord.api.commands.ApplicationCommandType
 import com.discord.api.guildmember.PatchGuildMemberBody
 import com.discord.api.permission.Permission
-import com.discord.api.message.allowance.AllowedMentions
-import com.discord.restapi.RestAPIParams
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
+import com.discord.utilities.analytics.AnalyticSuperProperties
+import com.discord.stores.StoreExperiments
+import com.google.gson.JsonObject
+import rx.Observable
 
 @Suppress("unused")
 @AliucordPlugin
@@ -92,11 +95,17 @@ class SlashNick : Plugin() {
             val newName = it.getString("name")
             
             try {
-                // Use RestAPIParams to update the display name
-                val params = RestAPIParams.User()
-                params.globalName = newName
+                // Create a simple JSON request body
+                val body = JsonObject()
+                body.addProperty("global_name", newName)
                 
-                val (_, err) = RestAPI.api.updateCurrentUser(params).await()
+                // Make a direct PATCH request to the users/@me endpoint
+                val (_, err) = RestAPI.api.put(
+                    "https://discord.com/api/v9/users/@me", 
+                    body.toString(),
+                    null,
+                    false
+                ).await()
                 
                 if (err != null) {
                     err.printStackTrace()
@@ -107,7 +116,7 @@ class SlashNick : Plugin() {
                     )
                 }
                 
-                val msg = if (newName != null) 
+                val msg = if (newName != null && newName.isNotEmpty()) 
                     "Your global display name has been changed to **$newName**." 
                 else 
                     "Your global display name has been reset."
