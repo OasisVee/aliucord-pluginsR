@@ -9,102 +9,113 @@ import com.aliucord.utils.RxUtils.await
 import com.discord.api.commands.ApplicationCommandType
 import com.discord.api.guildmember.PatchGuildMemberBody
 import com.discord.api.permission.Permission
-import com.discord.api.user.PatchUserBody
+import com.discord.api.message.allowance.AllowedMentions
+import com.discord.restapi.RestAPIParams
 import com.discord.stores.StoreStream
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
-import com.discord.api.message.NullSerializable
 
 @Suppress("unused")
 @AliucordPlugin
 class SlashNick : Plugin() {
     override fun start(ctx: Context) {
+        // Keep the original /nick command for server nicknames
         commands.registerCommand(
-            "changename",
-            "Change your display name or server nickname.",
+            "nick",
+            "Change your nickname on this server.",
             listOf(
                 Utils.createCommandOption(
                     ApplicationCommandType.STRING,
-                    "type",
-                    "Type of name to change (displayname/nickname)",
-                    required = true
-                ),
-                Utils.createCommandOption(
-                    ApplicationCommandType.STRING,
-                    "name",
-                    "New name",
-                    required = true
+                    "nickname",
+                    "New nickname"
                 )
             )
         ) {
-            val type = it.getString("type")
-            val newName = it.getString("name")
+            if (!it.currentChannel.isGuild())
+                return@registerCommand CommandResult("You can only change nicknames in servers!", null, false)
+
+            val newNick = it.getString("nickname")
+            val guild = StoreStream.getGuilds().getGuild(it.currentChannel.guildId)
             val me = StoreStream.getUsers().me
+            val meMember = StoreStream.getGuilds().getMember(guild.id, me.id)
+            val roles = StoreStream.getGuilds().roles[guild.id]
+            val permissions = PermissionUtils.computeNonThreadPermissions(
+                meMember.userId,
+                guild.id,
+                guild.ownerId,
+                meMember,
+                roles,
+                null
+            )
+            if (!PermissionUtils.can(Permission.CHANGE_NICKNAME, permissions))
+                return@registerCommand CommandResult(
+                    "You do not have sufficient permissions to change your nickname.",
+                    null,
+                    false
+                )
 
-            when (type) {
-                "displayname" -> {
-                    // Create a PatchUserBody with the global_name parameter
-                    // Wrap the new name in NullSerializable to satisfy type requirements
-                    val (_, err) = RestAPI.api.patchUser(
-                        PatchUserBody(
-                            NullSerializable.ofNullable(null),
-                            NullSerializable.ofNullable(null),
-                            NullSerializable.ofNullable(newName),
-                            NullSerializable.ofNullable(null)
-                        )
-                    ).await()
+            if (newNick != meMember.nick) {
+                val (_, err) = RestAPI.api.updateMeGuildMember(
+                    guild.id,
+                    PatchGuildMemberBody(newNick ?: me.username, null, null, null, 12)
+                ).await()
 
-                    if (err != null) {
-                        err.printStackTrace()
-                        return@registerCommand CommandResult(
-                            "Failed to change display name. Check log for more details.",
-                            null,
-                            false
-                        )
-                    }
-                    
-                    CommandResult("Your display name has been changed to **$newName**.", null, false)
-                }
-                "nickname" -> {
-                    if (!it.currentChannel.isGuild())
-                        return@registerCommand CommandResult("You can only change nicknames in servers!", null, false)
-
-                    val guild = StoreStream.getGuilds().getGuild(it.currentChannel.guildId)
-                    val meMember = StoreStream.getGuilds().getMember(guild.id, me.id)
-                    val roles = StoreStream.getGuilds().roles[guild.id]
-                    val permissions = PermissionUtils.computeNonThreadPermissions(
-                        meMember.userId,
-                        guild.id,
-                        guild.ownerId,
-                        meMember,
-                        roles,
-                        null
+                if (err != null) {
+                    err.printStackTrace()
+                    return@registerCommand CommandResult(
+                        "Failed to change nickname. Check log for more details.",
+                        null,
+                        false
                     )
-                    if (!PermissionUtils.can(Permission.CHANGE_NICKNAME, permissions))
-                        return@registerCommand CommandResult(
-                            "You do not have sufficient permissions to change your nickname.",
-                            null,
-                            false
-                        )
-
-                    if (newName != meMember.nick) {
-                        val (_, err) = RestAPI.api.updateMeGuildMember(
-                            guild.id,
-                            PatchGuildMemberBody(newName ?: me.username, null, null, null, 12)
-                        ).await()
-
-                        if (err != null) {
-                            err.printStackTrace()
-                            return@registerCommand CommandResult(
-                                "Failed to change nickname. Check log for more details.",
-                                null,
-                                false
-                            )
-                        }
-                    }
-                    CommandResult("Your nickname on this server has been changed to **$newName**.", null, false)
                 }
-                else -> CommandResult("Invalid type. Please specify 'displayname' or 'nickname'.", null, false)
+            }
+
+            val msg =
+                if (newNick != null && newNick != meMember.nick)
+                    "Your nickname on this server has been changed to **$newNick**."
+                else "Your nickname has been reset."
+            CommandResult(msg, null, false)
+        }
+        
+        // Add a new /displayname command for global display names
+        commands.registerCommand(
+            "displayname",
+            "Change your global display name across all servers.",
+            listOf(
+                Utils.createCommandOption(
+                    ApplicationCommandType.STRING,
+                    "name",
+                    "New display name (or empty to reset)"
+                )
+            )
+        ) {
+            val newName = it.getString("name")
+            
+            try {
+                // Use RestAPIParams to update the display name
+                val params = RestAPIParams.User()
+                params.globalName = newName
+                
+                val (_, err) = RestAPI.api.updateCurrentUser(params).await()
+                
+                if (err != null) {
+                    err.printStackTrace()
+                    return@registerCommand CommandResult(
+                        "Failed to change display name. Check log for more details.",
+                        null,
+                        false
+                    )
+                }
+                
+                val msg = if (newName != null) 
+                    "Your global display name has been changed to **$newName**." 
+                else 
+                    "Your global display name has been reset."
+                    
+                CommandResult(msg, null, false)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                CommandResult("Failed to change display name: ${e.message}", null, false)
             }
         }
     }
