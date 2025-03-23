@@ -16,6 +16,10 @@ import com.discord.utilities.rest.RestAPI
 import com.discord.utilities.analytics.AnalyticSuperProperties
 import com.discord.stores.StoreExperiments
 import com.google.gson.JsonObject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import rx.Observable
 
 @Suppress("unused")
@@ -100,18 +104,20 @@ class SlashNick : Plugin() {
                 body.addProperty("global_name", newName)
                 
                 // Retrieve the OAuth2 token with identify scope
-                val token = StoreStream.getAuthentication().accessToken
+                val token = StoreStream.getAuthentication().getSession().accessToken
                 
                 // Make a direct PATCH request to the users/@me endpoint with the OAuth2 token
-                val (_, err) = RestAPI.api.put(
-                    "https://discord.com/api/v9/users/@me", 
-                    body.toString(),
-                    mutableMapOf("Authorization" to "Bearer $token"),
-                    false
-                ).await()
+                val client = OkHttpClient()
+                val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+                val requestBody = body.toString().toRequestBody(mediaType)
+                val request = Request.Builder()
+                    .url("https://discord.com/api/v9/users/@me")
+                    .patch(requestBody)
+                    .addHeader("Authorization", "Bearer $token")
+                    .build()
                 
-                if (err != null) {
-                    err.printStackTrace()
+                val response = client.newCall(request).execute()
+                if (!response.isSuccessful) {
                     return@registerCommand CommandResult(
                         "Failed to change display name. Check log for more details.",
                         null,
