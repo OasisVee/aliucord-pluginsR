@@ -19,7 +19,6 @@ import com.discord.stores.StoreStream
 import com.discord.utilities.icon.IconUtils
 import com.discord.widgets.chat.overlay.ChatTypingModel
 import com.discord.widgets.chat.overlay.WidgetChatOverlay
-import com.discord.widgets.settings.WidgetSettings
 import com.discord.widgets.user.usersheet.WidgetUserSheet
 import com.facebook.drawee.view.SimpleDraweeView
 import com.lytefast.flexinput.R
@@ -27,23 +26,17 @@ import com.lytefast.flexinput.R
 @Suppress("unused")
 @AliucordPlugin
 class TypingUsers : Plugin() {
-	var typingUsers = emptySet<Long>()
-	private var widgetSettings: WidgetSettings? = null
+	private var typingUsers = emptySet<Long>()
 
 	private val fChatOverlayBinding = WidgetChatOverlay.TypingIndicatorViewHolder::class.java
 		.getDeclaredField("binding")
 		.apply { isAccessible = true }
-
 
 	override fun start(ctx: Context) {
 		StoreStream.getChannelsSelected().observeId().subscribe {
 			StoreStream.getUsersTyping().observeTypingUsers(this).subscribe {
 				typingUsers = this
 			}
-		}
-
-		patcher.after<WidgetSettings>("onViewBound", View::class.java) {
-			widgetSettings = this
 		}
 
 		patcher.after<WidgetChatOverlay.TypingIndicatorViewHolder>(
@@ -54,16 +47,16 @@ class TypingUsers : Plugin() {
 			if (model.typingUsers.isEmpty()) return@after
 
 			val binding = fChatOverlayBinding.get(this) as WidgetChatOverlayBinding
-			binding.c.setOnClickListener {
-				val manager = widgetSettings?.parentFragmentManager
-					?: return@setOnClickListener
-				TypingUsersSheet(typingUsers).show(manager, "TypingUsers")
+			val layout = binding.a
+			layout.setOnLongClickListener {
+				Utils.widgetChatList?.parentFragmentManager
+					?.let { manager -> TypingUsersSheet(typingUsers).show(manager, "TypingUsers") }
+				true
 			}
 		}
 	}
 
 	override fun stop(context: Context) {
-		widgetSettings = null
 		patcher.unpatchAll()
 	}
 }
