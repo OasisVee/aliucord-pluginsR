@@ -11,6 +11,9 @@ insert_final_newline = true
 indent_style = tab
 indent_size = 4
 tab_width = 4
+ij_formatter_tags_enabled = true
+ij_formatter_off_tag = @formatter:off
+ij_formatter_on_tag = @formatter:on
 
 # these are Intellij specific so they will only work in Android Studio / IDEA
 ij_continuation_indent_size = 4
