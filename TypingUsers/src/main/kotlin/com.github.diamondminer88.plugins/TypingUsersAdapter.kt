@@ -25,19 +25,28 @@ import rx.Observable
 @SuppressLint("NotifyDataSetChanged")
 class TypingUsersAdapter(
 	userIdsObservable: Observable<Set<Long>>,
+	userRefresh: Observable<Long>,
 	private val fragmentManager: FragmentManager,
 ) : RecyclerView.Adapter<ChannelMembersListViewHolderMember>() {
-	private var users: LongArray = longArrayOf()
+	private var users: MutableList<ChannelMembersListAdapter.Item.Member> = mutableListOf()
 
 	init {
 		userIdsObservable.subscribe {
-			users = this.toLongArray()
+			users = this.map(::createMemberItem).toMutableList()
 			notifyDataSetChanged()
+		}
+		userRefresh.subscribe {
+			val userId = this
+			val index = users.indexOfFirst { it.userId == userId }
+				.takeIf { it >= 0 } ?: return@subscribe
+
+			users[index] = createMemberItem(userId)
+			notifyItemChanged(index)
 		}
 	}
 
 	override fun getItemCount(): Int = users.size
-	override fun getItemId(position: Int): Long = users[position]
+	override fun getItemId(position: Int): Long = users[position].userId
 
 	override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChannelMembersListViewHolderMember {
 		val inflater = LayoutInflater.from(parent.context)
@@ -58,25 +67,7 @@ class TypingUsersAdapter(
 	}
 
 	override fun onBindViewHolder(holder: ChannelMembersListViewHolderMember, position: Int) {
-		val userId = users[position]
-
-		val memberRow = StoreChannelMembers.`access$makeRowMember`( // @formatter:off
-			StoreStream.getChannelMembers(),
-			/* guildId = */ StoreStream.getGuildSelected().selectedGuildId,
-			/* userId = */ userId,
-			/* allowOwnerIndicator = */ true,
-		) // @formatter:on
-
-		val storeStream = StoreStream.Companion.`access$getCollector$p`(StoreStream.Companion)
-		val guild = StoreStream.getGuilds().getGuild(StoreStream.getGuildSelected().selectedGuildId)
-		val memberItemGenerator = `GuildMemberListItemGeneratorKt$generateGuildMemberListItems$listItems$1`(
-			StoreStream.getGuilds(),
-			StoreStream.`access$getCustomEmojis$p`(storeStream),
-			guild,
-			StoreStream.getChannels().getChannel(StoreStream.getChannelsSelected().id),
-			guild?.roles?.associateBy { it.id },
-		)
-		val memberItem = memberItemGenerator.invoke(memberRow) as ChannelMembersListAdapter.Item.Member
+		val memberItem = users[position]
 
 		holder.bind(memberItem) {
 			WidgetUserSheet.show( // @formatter:off
@@ -86,5 +77,26 @@ class TypingUsersAdapter(
 				/* guildId = */ memberItem.guildId,
 			) // @formatter:on
 		}
+	}
+
+	private fun createMemberItem(userId: Long): ChannelMembersListAdapter.Item.Member {
+		val memberRow = StoreChannelMembers.`access$makeRowMember`( // @formatter:off
+			StoreStream.getChannelMembers(),
+			/* guildId = */ StoreStream.getGuildSelected().selectedGuildId,
+			/* userId = */ userId,
+			/* allowOwnerIndicator = */ true,
+		) // @formatter:on
+
+		val storeStream = StoreStream.getPresences().stream
+		val guild = StoreStream.getGuilds().getGuild(StoreStream.getGuildSelected().selectedGuildId)
+		val memberItemGenerator = `GuildMemberListItemGeneratorKt$generateGuildMemberListItems$listItems$1`(
+			StoreStream.getGuilds(),
+			StoreStream.`access$getCustomEmojis$p`(storeStream),
+			guild,
+			StoreStream.getChannels().getChannel(StoreStream.getChannelsSelected().id),
+			guild?.roles?.associateBy { it.id },
+		)
+
+		return memberItemGenerator.invoke(memberRow) as ChannelMembersListAdapter.Item.Member
 	}
 }

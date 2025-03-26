@@ -40,7 +40,7 @@ class TypingUsersPage(private val plugin: TypingUsers) : SettingsPage() {
 		}
 
 		RecyclerView(ctx).apply {
-			adapter = TypingUsersAdapter(model.currentlyTyping, parentFragmentManager)
+			adapter = TypingUsersAdapter(model.currentlyTyping, model.refreshUser, parentFragmentManager)
 			layoutManager = LinearLayoutManager(ctx)
 			container.addView(this)
 		}
@@ -52,7 +52,7 @@ class TypingUsersPage(private val plugin: TypingUsers) : SettingsPage() {
 		}
 
 		RecyclerView(ctx).apply {
-			adapter = TypingUsersAdapter(model.previouslyTyping, parentFragmentManager)
+			adapter = TypingUsersAdapter(model.previouslyTyping, model.refreshUser, parentFragmentManager)
 			layoutManager = LinearLayoutManager(ctx)
 			container.addView(this)
 		}
