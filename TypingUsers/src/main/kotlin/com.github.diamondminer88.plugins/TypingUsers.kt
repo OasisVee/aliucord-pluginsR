@@ -1,6 +1,7 @@
 package com.github.diamondminer88.plugins
 
 import android.content.Context
+import androidx.lifecycle.ViewModelStore
 import com.aliucord.Utils
 import com.aliucord.annotations.AliucordPlugin
 import com.aliucord.entities.Plugin
@@ -12,6 +13,9 @@ import com.discord.widgets.chat.overlay.WidgetChatOverlay
 @Suppress("unused")
 @AliucordPlugin(requiresRestart = true)
 class TypingUsers : Plugin() {
+	internal var typingUsersModelStore = ViewModelStore()
+	internal var typingUsersModelClearTask: Runnable? = null
+
 	override fun start(ctx: Context) {
 		val fChatOverlayBinding = WidgetChatOverlay.TypingIndicatorViewHolder::class.java
 			.getDeclaredField("binding")
@@ -27,7 +31,7 @@ class TypingUsers : Plugin() {
 			val binding = fChatOverlayBinding.get(this) as WidgetChatOverlayBinding
 			val layout = binding.a
 			layout.setOnLongClickListener { view ->
-				Utils.openPageWithProxy(view.context, TypingUsersPage())
+				Utils.openPageWithProxy(view.context, TypingUsersPage(this@TypingUsers))
 				true
 			}
 		}
@@ -35,5 +39,7 @@ class TypingUsers : Plugin() {
 
 	override fun stop(context: Context) {
 		patcher.unpatchAll()
+		typingUsersModelClearTask?.run()
+		typingUsersModelClearTask?.let(Utils.mainThread::removeCallbacks)
 	}
 }

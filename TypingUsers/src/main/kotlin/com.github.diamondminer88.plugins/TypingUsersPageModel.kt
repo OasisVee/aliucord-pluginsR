@@ -1,7 +1,6 @@
 package com.github.diamondminer88.plugins
 
 import androidx.lifecycle.ViewModel
-import com.aliucord.Main
 import com.aliucord.Utils
 import com.aliucord.utils.RxUtils.subscribe
 import com.discord.stores.StoreStream
@@ -28,7 +27,6 @@ class TypingUsersPageModel : ViewModel() {
 	}
 
 	override fun onCleared() {
-		// FIXME: not being cleared
 		currentChannelSubscription?.unsubscribe()
 		typingSubscription?.unsubscribe()
 	}
