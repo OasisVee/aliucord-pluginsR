@@ -18,7 +18,7 @@ import com.discord.utilities.rest.RestAPI
 class SlashNick : Plugin() {
 	override fun start(ctx: Context) {
 		commands.registerCommand(
-			"Snick",
+			"SNick",
 			"Change your nickname on this server.",
 			listOf(
 				Utils.createCommandOption(
