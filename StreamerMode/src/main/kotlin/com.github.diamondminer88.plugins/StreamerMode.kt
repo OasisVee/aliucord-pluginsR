@@ -13,6 +13,7 @@ import com.aliucord.api.SettingsAPI
 import com.aliucord.entities.Plugin
 import com.aliucord.fragments.ConfirmDialog
 import com.aliucord.patcher.after
+import com.aliucord.patcher.before
 import com.aliucord.patcher.instead
 import com.aliucord.settings.delegate
 import com.aliucord.widgets.BottomSheet
@@ -43,6 +44,11 @@ class StreamerMode : Plugin() {
 	private val fShowAkas =
 		UserProfileHeaderViewModel.ViewState.Loaded::class.java.getDeclaredField("showAkas")
 			.apply { isAccessible = true }
+
+	// Username display related resources
+	private val profileHeaderPrimaryUsername = Utils.getResId("username_text", "id")
+	private val profileHeaderSecondaryUsername = Utils.getResId("user_profile_header_secondary_name", "id")
+	private val userActionsDialogUserName = Utils.getResId("user_actions_dialog_user_name", "id")
 
 	init {
 		settingsTab = SettingsTab(
@@ -80,6 +86,13 @@ class StreamerMode : Plugin() {
 	private val hideDiscriminators: Boolean by settings.delegate(true)
 	private val hidePersonalDetails: Boolean by settings.delegate(true)
 	private val showWarning: Boolean by settings.delegate(true)
+	private val truncateUsernames: Boolean by settings.delegate(false)
+
+	// Helper function to truncate username
+	private fun truncateUsername(username: String): String {
+		if (!truncateUsernames || username.isEmpty()) return username
+		return username.take(1) + "."
+	}
 
 	override fun start(ctx: Context) {
 		// dm sidebar AKAs
@@ -119,6 +132,24 @@ class StreamerMode : Plugin() {
 		) {
 			if (hideDiscriminators) ""
 			else UserUtils.INSTANCE.padDiscriminator((it.args[0] as User).discriminator)
+		}
+
+		// Truncate usernames in getUserName method
+		patcher.instead<UserUtils>(
+			"getUserName",
+			User::class.java
+		) {
+			val original = UserUtils.INSTANCE.getUserName(it.args[0] as User)
+			if (truncateUsernames) truncateUsername(original) else original
+		}
+
+		// Truncate display names in getDisplayName method
+		patcher.instead<UserUtils>(
+			"getDisplayName",
+			User::class.java
+		) {
+			val original = UserUtils.INSTANCE.getDisplayName(it.args[0] as User)
+			if (truncateUsernames) truncateUsername(original) else original
 		}
 
 		// user account settings
@@ -170,6 +201,7 @@ class StreamerModeSettings(settings: SettingsAPI) : BottomSheet() {
 	private var hideDiscriminators: Boolean by settings.delegate(true)
 	private var hidePersonalDetails: Boolean by settings.delegate(true)
 	private var showWarning: Boolean by settings.delegate(true)
+	private var truncateUsernames: Boolean by settings.delegate(false)
 
 	override fun onViewCreated(view: View, bundle: Bundle?) {
 		super.onViewCreated(view, bundle)
@@ -219,6 +251,15 @@ class StreamerModeSettings(settings: SettingsAPI) : BottomSheet() {
 		).apply {
 			isChecked = hideConnections
 			setOnCheckedListener { hideConnections = it }
+		})
+
+		addView(createCheckedSetting(
+			ctx, SWITCH,
+			"Truncate usernames",
+			"Truncate usernames to just the first letter"
+		).apply {
+			isChecked = truncateUsernames
+			setOnCheckedListener { truncateUsernames = it }
 		})
 	}
 }
